@@ -7,10 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StorageApi.Data;
 using StorageApi.Models;
+using StorageApi.DTOs;
+using StorageApi.Migrations;
 
 namespace StorageApi.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/products")]
     [ApiController]
     public class ProductsController : ControllerBase
     {
@@ -25,7 +27,17 @@ namespace StorageApi.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Product>>> GetProduct()
         {
-            return await _context.Product.ToListAsync();
+            var products =  await _context.Product.ToListAsync();
+
+            var productsDtos = products.Select(p => new ProductDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Price = p.Price,
+                Count = p.Count
+            }).ToList();
+
+            return Ok(productsDtos);
         }
 
         // GET: api/Products/5
@@ -39,36 +51,36 @@ namespace StorageApi.Controllers
                 return NotFound();
             }
 
-            return product;
+
+            var ProducDto = new ProductDto
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Price = product.Price,
+                Count = product.Count
+            };
+
+            return Ok(ProducDto);
+
         }
 
         // PUT: api/Products/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutProduct(int id, Product product)
+        public async Task<IActionResult> PutProduct(int id, CreateProductDto requestBody)
         {
-            if (id != product.Id)
-            {
-                return BadRequest();
-            }
+            var product = await _context.Product.FindAsync(id);
+            if (product == null)
+                return NotFound();
 
-            _context.Entry(product).State = EntityState.Modified;
+            product.Name = requestBody.Name;
+            product.Price = requestBody.Price;
+            product.Category = requestBody.Category;
+            product.Shelf = requestBody.Shelf;
+            product.Count = requestBody.Count;
+            product.Description = requestBody.Description;
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ProductExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }
@@ -76,12 +88,34 @@ namespace StorageApi.Controllers
         // POST: api/Products
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Product>> PostProduct(Product product)
+        public async Task<ActionResult<Product>> PostProduct(CreateProductDto requestBody)
         {
+
+
+            var product = new Product
+            {
+                Name = requestBody.Name,
+                Price = requestBody.Price,
+                Category = requestBody.Category,
+                Shelf = requestBody.Shelf,
+                Count = requestBody.Count,
+                Description = requestBody.Description
+            };
+
+
             _context.Product.Add(product);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetProduct", new { id = product.Id }, product);
+
+            var dto = new ProductDto
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Price = product.Price,
+                Count = product.Count
+            };
+
+            return CreatedAtAction("GetProduct", new { id = product.Id }, dto);
         }
 
         // DELETE: api/Products/5
@@ -90,9 +124,8 @@ namespace StorageApi.Controllers
         {
             var product = await _context.Product.FindAsync(id);
             if (product == null)
-            {
                 return NotFound();
-            }
+
 
             _context.Product.Remove(product);
             await _context.SaveChangesAsync();
