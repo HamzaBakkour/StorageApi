@@ -25,11 +25,18 @@ namespace StorageApi.Controllers
 
         // GET: api/Products
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ProductDto>>> GetProduct()
+        public async Task<ActionResult<IEnumerable<ProductDto>>> GetProduct([FromQuery] string? category)
         {
-            var products =  await _context.Product.ToListAsync();
+            IQueryable<Product> query = _context.Product;
 
-            var productsDtos = products.Select(p => new ProductDto
+            if (!string.IsNullOrWhiteSpace(category))
+            {
+                query = query.Where(p => p.Category.ToLower() == category.ToLower());
+            }
+
+            var products = await query.ToListAsync();
+
+            var productDtos = products.Select(p => new ProductDto
             {
                 Id = p.Id,
                 Name = p.Name,
@@ -37,7 +44,7 @@ namespace StorageApi.Controllers
                 Count = p.Count
             }).ToList();
 
-            return Ok(productsDtos);
+            return Ok(productDtos);
         }
 
         // GET: api/Products/stats
