@@ -25,7 +25,7 @@ namespace StorageApi.Controllers
 
         // GET: api/Products
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Product>>> GetProduct()
+        public async Task<ActionResult<IEnumerable<ProductDto>>> GetProduct()
         {
             var products =  await _context.Product.ToListAsync();
 
@@ -40,29 +40,29 @@ namespace StorageApi.Controllers
             return Ok(productsDtos);
         }
 
-        // GET: api/Products/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Product>> GetProduct(int id)
+        // GET: api/Products/stats
+        [HttpGet("stats")]
+        public async Task<ActionResult<ProductStatsDto>> GetProduct(int id)
         {
-            var product = await _context.Product.FindAsync(id);
+            var products = await _context.Product.ToListAsync();
 
-            if (product == null)
+            var totalCount = products.Sum(p => p.Count);
+            var totalInventoryValue = products.Sum(p => p.Count * p.Price);
+            var averagePrice = products.Average(p => p.Price);
+
+            var stats = new ProductStatsDto
             {
-                return NotFound();
-            }
-
-
-            var ProducDto = new ProductDto
-            {
-                Id = product.Id,
-                Name = product.Name,
-                Price = product.Price,
-                Count = product.Count
+                TotalCount = totalCount,
+                TotalInventoryValue = totalInventoryValue,
+                AveragePrice = Math.Round(averagePrice, 2)
             };
 
-            return Ok(ProducDto);
+            return Ok(stats);
 
         }
+
+
+
 
         // PUT: api/Products/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
